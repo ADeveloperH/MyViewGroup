@@ -68,6 +68,37 @@ public class MyScrollowView extends ViewGroup {
     }
 
 
+    /**
+     * 测量的大小，与真实大小的区别
+     * 测量的大小 是view自身通过onMesaure方法，计算的自身想要的大小
+     * 真实大小 是父view指定大小，系统的控件在指定子view大小的时候，会参考子veiw的测量大小来指定
+     * 只有当view.layout方法执行以后，该view才有真实的大小。
+     */
+
+    @Override
+    /**
+     * 系统测量当前控件时，调用此方法,
+     * 如果当前控件，只是一个普通的view，只要测量自身的大小就可以了
+     * 但，如果当前控件是一个viewGroup的话，除了测量自身大小外，
+     * 还必须测量ViewGropu子view 的大小。
+     */
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        System.out.println("widthMeasureSpec::"+widthMeasureSpec);
+
+        int mode = MeasureSpec.getMode(widthMeasureSpec);
+        int size = MeasureSpec.getSize(widthMeasureSpec);
+        System.out.println("mode:"+mode);
+        System.out.println("size:"+size);
+
+
+        for (int i = 0; i < getChildCount(); i++) {
+            //测量子控件的大小
+            getChildAt(i).measure(widthMeasureSpec,heightMeasureSpec);
+        }
+    }
+
     @Override
     /**
      *
@@ -89,6 +120,58 @@ public class MyScrollowView extends ViewGroup {
         }
     }
 
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private int downInterX;
+    private int downInterY;
+    @Override
+    /**
+     * 当需要中断事件时，处理此方法
+     * 返回false 意思为不中断，按正常处理.事件会一层一层的向下传递给子View
+     * 返回 true 意思是中断，由本控件处理。
+     */
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        boolean isIntercept = false;
+        // 目的：让listView即能上下滑动，也能水平滑动切换页面
+        // 思路：当listView上下滑动时，返回 false 不中断，按默认处理
+        // 当在listView中水平滑动时，返回true ，中断事件，由本控件处理
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                downInterX = (int) ev.getX();
+                downInterY = (int) ev.getY();
+
+                /**
+                 * 解决listView 水平滑动跳跃的BUG，就是把down事件，传递给需要的值
+                 * 否则，MyScrollowView收到的第一个事件会是move事件，因为down事件会向下传递给listview由
+                 * listview消费了。同时gestureDetector里面也没有收到down事件
+                 *
+                 */
+                downX = (int) ev.getX();
+                gestureDetector.onTouchEvent(ev);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if(Math.abs(ev.getX() - downInterX) > Math.abs(ev.getY() - downInterY)){
+                    if(Math.abs(ev.getX() - downInterX) > 15){
+                        //当有一定的唯一了才给他判定为是水平的滑动事件
+                        isIntercept = true;
+                    }else{
+                        //否则就不中断事件的传递
+                        gestureDetector.onTouchEvent(ev);
+                    }
+                }else{
+                    isIntercept = false;
+                }
+                break;
+            case  MotionEvent.ACTION_POINTER_UP:
+                break;
+
+        }
+        return isIntercept;
+    }
 
     private int downX;//按下时x轴的坐标
     @Override
@@ -148,6 +231,7 @@ public class MyScrollowView extends ViewGroup {
             currentIndex = getChildCount() - 1;
         }
 
+        this.currentIndex = currentIndex;
         /**
          *
          * 当要改变页面是调用回调方法。触发页面改变的监听

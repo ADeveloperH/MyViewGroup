@@ -2,7 +2,9 @@ package project.hjking.cn.myviewgroup;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 
@@ -36,6 +38,11 @@ public class MyScrollowViewActivity extends Activity {
             //将图片添加至自定义的view中去
             msv.addView(imageView);
         }
+
+
+        LinearLayout llView = (LinearLayout) View.inflate(this, R.layout.view_layout, null);
+        msv.addView(llView,3);
+
 
         //添加RadioButton
         for (int i = 0; i < msv.getChildCount(); i++) {
